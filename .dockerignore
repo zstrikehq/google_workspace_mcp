@@ -23,6 +23,10 @@ dist/
 mcp_server_debug.log
 .credentials/
 
+# Local Python / uv (Windows: .venv lock files break "load build context"; image runs uv sync anyway)
+.venv/
+venv/
+
 # Cache and temporary files
 __pycache__/
 *.pyc
