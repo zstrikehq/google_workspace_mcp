@@ -39,3 +39,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Exec-form entrypoint so `docker run IMAGE --tool-tier core` appends args to uv (see Docker docs).
 # Do not use `sh -c` here: trailing `docker run ... IMAGE --flags` would break `-c` and yield "Illegal option --".
 ENTRYPOINT ["uv", "run", "main.py", "--transport", "streamable-http"]
+CMD ["--permissions", "gmail:full", "--tool-tier", "complete"]

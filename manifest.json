@@ -23,7 +23,9 @@
         "--directory",
         "${__dirname}",
         "python",
-        "${__dirname}/main.py"
+        "${__dirname}/main.py",
+        "--tools",
+        "gmail"
       ],
       "env": {
         "GOOGLE_OAUTH_CLIENT_ID": "${user_config.GOOGLE_OAUTH_CLIENT_ID}",
