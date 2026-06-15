@@ -1,5 +1,6 @@
 """Tests for core comments module."""
 
+import inspect
 import sys
 import os
 import pytest
@@ -7,7 +8,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from core.comments import _read_comments_impl, _create_comment_impl
+from core.comments import _read_comments_impl, _create_comment_impl, create_comment_tools
 
 
 def _make_comment(comment_id, content="Comment text", author="Alice"):
@@ -24,10 +25,7 @@ def _make_comment(comment_id, content="Comment text", author="Alice"):
 
 
 def _mock_service_pages(pages):
-    """Build a mock service that returns the given pages sequentially.
-
-    Each page is a tuple (comments_list, next_page_token_or_None).
-    """
+    """Build a mock service returning pages as (comments_list, next_page_token_or_None) tuples."""
     mock_service = Mock()
     responses = []
     for comments, next_token in pages:
@@ -39,11 +37,6 @@ def _mock_service_pages(pages):
     execute_mock = Mock(side_effect=responses)
     mock_service.comments.return_value.list.return_value.execute = execute_mock
     return mock_service
-
-
-# ---------------------------------------------------------------------------
-# Existing tests (updated for paginated API)
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -136,11 +129,6 @@ async def test_create_comment():
     assert "Comment created successfully" in result
 
 
-# ---------------------------------------------------------------------------
-# T006: TestReadCommentsImplPagination
-# ---------------------------------------------------------------------------
-
-
 class TestReadCommentsImplPagination:
     """Pagination behavior in _read_comments_impl."""
 
@@ -182,7 +170,7 @@ class TestReadCommentsImplPagination:
         mock_service = _mock_service_pages(
             [
                 (page1, "token2"),
-                (page2, "token3"),  # would have more, but we stop
+                (page2, "token3"),
             ]
         )
 
@@ -196,11 +184,6 @@ class TestReadCommentsImplPagination:
         assert calls[1].kwargs["pageSize"] == 2  # min(100, 5-3)
 
 
-# ---------------------------------------------------------------------------
-# T007: TestCommentToolsFactory
-# ---------------------------------------------------------------------------
-
-
 class TestCommentToolsFactory:
     """All three tool variants pass max_comments through to _read_comments_impl."""
 
@@ -210,8 +193,6 @@ class TestCommentToolsFactory:
         comments = [_make_comment("c1")]
         mock_service = _mock_service_pages([(comments, None)])
 
-        # Call _read_comments_impl directly with max_comments to verify it
-        # threads through to the API call as pageSize.
         await _read_comments_impl(mock_service, "document", "doc1", max_comments=50)
         call_kwargs = mock_service.comments.return_value.list.call_args.kwargs
         assert call_kwargs["pageSize"] == 50
@@ -219,9 +200,6 @@ class TestCommentToolsFactory:
     @pytest.mark.asyncio
     async def test_all_variants_accept_max_comments(self):
         """Verify all three list_comments variants have max_comments param."""
-        import inspect
-        from core.comments import create_comment_tools
-
         for app, param in [
             ("document", "document_id"),
             ("spreadsheet", "spreadsheet_id"),
@@ -234,11 +212,6 @@ class TestCommentToolsFactory:
             )
             p = sig.parameters["max_comments"]
             assert p.default is None, f"{app} max_comments default should be None"
-
-
-# ---------------------------------------------------------------------------
-# T008: TestCommentsEnvVar
-# ---------------------------------------------------------------------------
 
 
 class TestCommentsEnvVar:
@@ -275,17 +248,11 @@ class TestCommentsEnvVar:
         mock_service = _mock_service_pages([(comments, None)])
 
         with patch.dict(os.environ, {}, clear=True):
-            # Remove the key if present
             os.environ.pop("WORKSPACE_MCP_COMMENTS_MAX", None)
             await _read_comments_impl(mock_service, "document", "doc1")
 
         call_kwargs = mock_service.comments.return_value.list.call_args.kwargs
         assert call_kwargs["pageSize"] == 100
-
-
-# ---------------------------------------------------------------------------
-# T009: TestCommentsEdgeCases
-# ---------------------------------------------------------------------------
 
 
 class TestCommentsEdgeCases:

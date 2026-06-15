@@ -223,18 +223,12 @@ async def _read_comments_impl(
     """Implementation for reading comments from any Google Workspace file."""
     logger.info(f"[read_{app_name}_comments] Reading comments for {app_name} {file_id}")
 
-    # Resolve effective limit: per-call > env var > hardcoded fallback
     if max_comments is None:
-        env_val = os.getenv("WORKSPACE_MCP_COMMENTS_MAX")
-        if env_val is not None:
-            try:
-                max_comments = int(env_val)
-            except (ValueError, TypeError):
-                max_comments = 100
-        else:
+        try:
+            max_comments = int(os.getenv("WORKSPACE_MCP_COMMENTS_MAX", "100"))
+        except (ValueError, TypeError):
             max_comments = 100
 
-    # Zero means return no comments; negative falls back to default
     if max_comments < 0:
         max_comments = 100
     if max_comments == 0:
@@ -258,7 +252,6 @@ async def _read_comments_impl(
         response = await asyncio.to_thread(service.comments().list(**kwargs).execute)
 
         page_comments = response.get("comments", [])
-        # Enforce hard limit: take only what we still need
         take = min(len(page_comments), max_comments - len(comments))
         comments.extend(page_comments[:take])
 
@@ -288,7 +281,6 @@ async def _read_comments_impl(
             output.append(f"Quoted text: {quoted_text}")
         output.append(f"Content: {content}")
 
-        # Add replies if any
         replies = comment.get("replies", [])
         if replies:
             output.append(f"  Replies ({len(replies)}):")
