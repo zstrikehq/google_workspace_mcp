@@ -8,7 +8,11 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from core.comments import _read_comments_impl, _create_comment_impl, create_comment_tools
+from core.comments import (
+    _read_comments_impl,
+    _create_comment_impl,
+    create_comment_tools,
+)
 
 
 def _make_comment(comment_id, content="Comment text", author="Alice"):
