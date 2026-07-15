@@ -7,17 +7,27 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/workspace-mcp.svg)](https://pypi.org/project/workspace-mcp/)
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/workspace-mcp?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=BLUE&left_text=downloads)](https://pepy.tech/projects/workspace-mcp)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/workspace-mcp?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=BLUE&left_text=pypi+downloads)](https://pepy.tech/projects/workspace-mcp)
 [![Website](https://img.shields.io/badge/Website-workspacemcp.com-green.svg)](https://workspacemcp.com)
 
-*Full natural language control over Google Calendar, Drive, Gmail, Docs, Sheets, Slides, Forms, Tasks, Contacts, and Chat through all MCP clients, AI assistants and developer tools. Includes a full featured CLI for use with tools like Claude Code and Codex!*
+*Full natural language control over Google Calendar, Drive, Gmail, Docs, Sheets, Slides, Forms, Tasks, Contacts, and Chat through all MCP clients, AI assistants and developer tools.*
 
-**The most feature-complete Google Workspace MCP server**, with Remote OAuth2.1 multi-user support and 1-click Claude installation. With native OAuth 2.1, stateless mode and external auth server support, it's the only Workspace MCP you can host for your whole organization centrally & securely!
+*Includes a full featured CLI & Code Mode for use with tools like Claude Code and Codex!*
 
-###### Support for all free Google accounts (Gmail, Docs, Drive etc) & Google Workspace plans (Starter, Standard, Plus, Enterprise, Non Profit) with expanded app options like Chat & Spaces. <br/><br /> Interested in a private, managed cloud instance? [That can be arranged.](https://workspacemcp.com/workspace-mcp-cloud)
+**The most feature-complete Google Workspace MCP server**, it can do things that Google's own tooling and the built in integrations with Claude and ChatGPT can't even dream of. With Remote OAuth2.1 multi-user support, fine-grained editing tools and the most extensive coverage of any Google Workspace tool in existance, Workspace MCP is in a different class. Offering native OAuth 2.1, stateless mode and external auth server support, it's also the only Workspace MCP you can host for your whole organization centrally & securely!
+
+###### Support for all free Google accounts & Google Workspace plans (Starter, Standard, Plus, Enterprise, Non Profit) with expanded app options like Chat & Spaces. <br/><br /> Interested in a private, managed cloud instance? [That can be arranged.](https://workspacemcp.com/workspace-mcp-cloud)
 
 
 </div>
+
+<p align="center">
+  <a href="https://workspacemcp.com/docs">
+    <img src="https://img.shields.io/badge/Read%20the%20Docs-0969DA?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Read the Docs">
+  </a><br /><a href="https://workspacemcp.com/quick-start">
+    <img src="https://img.shields.io/badge/Quick%20Start-2EA44F?style=for-the-badge" alt="Quick Start Guide">
+  </a>
+</p>
 
 <div align="center">
 <a href="https://www.pulsemcp.com/servers/taylorwilsdon-google-workspace">
@@ -47,7 +57,7 @@
 <td align="center">
 <b>🔌 Connect</b><br>
 <sub>
-<a href="#one-click-claude-desktop-install-claude-desktop-only-stdio-single-user">1-Click Install</a> · <a href="#connect-to-claude-desktop">Claude Desktop</a><br>
+<a href="#quick-start--connect-claude-to-google-workspace">Quick Start</a> · <a href="#connect-to-claude-desktop">Claude Desktop</a><br>
 <a href="#claude-code-mcp-client-support">Claude Code</a> · <a href="#vs-code-mcp-client-support">VS Code</a> · <a href="#connect-to-lm-studio">LM Studio</a>
 </sub>
 </td>
@@ -78,10 +88,7 @@
 
 ## <span style="color:#adbcbc">Overview</span>
 
-Workspace MCP is the single most complete MCP server that integrates all major Google Workspace services with AI assistants. It supports both single-user operation and multi-user authentication via OAuth 2.1, making it a powerful backend for custom applications. Built with FastMCP for optimal performance, featuring advanced authentication handling, service caching, and streamlined development patterns. The entire toolset is available for CLI usage supporting both local and remote instances.
-
-**Simplified Setup**: Now uses Google Desktop OAuth clients - no redirect URIs or port configuration needed!
-
+Workspace MCP is the single most complete MCP server, the only that integrates all major Google Workspace services with AI assistants and all agent platforms. The entire toolset is available for CLI usage supporting both local and remote instances.
 
 ## <span style="color:#adbcbc">Features</span>
 
@@ -92,7 +99,7 @@ Workspace MCP is the single most complete MCP server that integrates all major G
 <td valign="top" width="50%">
 
 **📧 Gmail** — Complete email management, end-to-end coverage<br>
-**📁 Drive** — File operations with sharing, permissions & Office formats<br>
+**📁 Drive** — File operations with sharing, permissions, Office files, PDFs & images<br>
 **📅 Calendar** — Full event management with advanced features<br>
 **📝 Docs** — Deep, fine-grained editing, formatting & comments<br>
 **📊 Sheets** — Flexible cell management, formatting & conditional rules<br>
@@ -137,7 +144,7 @@ This server sends no data anywhere except Google's APIs, on behalf of the authen
 - **You control the network** — deploy behind your reverse proxy, in your VPC, on your own terms
 - **No third-party services** — no intermediary servers, no token relays, no hosted backends
 - **Stateless mode** — zero disk writes for locked-down container environments
-- **Sensitive path blocking** — `.env`, `.ssh/`, `.aws/`, and credential files are blocked regardless of configuration
+- **Sensitive path blocking** — local file reads default to the managed attachment directory, and `validate_file_path()` still blocks `.env*` files plus common home-directory credential stores such as `~/.ssh/` and `~/.aws/` even if `ALLOWED_FILE_DIRS` is broadened
 
 Full dependency tree in `pyproject.toml`, pinned in `uv.lock`.
 
@@ -173,6 +180,12 @@ The license is 21 lines and says what it means.
 
 </div>
 
+<table>
+<tr>
+<td valign="top" width="50%">
+
+**Confidential Client Quick Start**
+
 ```bash
 # 1. Credentials
 export GOOGLE_OAUTH_CLIENT_ID="..."
@@ -187,6 +200,34 @@ uvx workspace-mcp --tool-tier complete   # everything
 uv run main.py --tools gmail drive calendar
 ```
 
+</td>
+<td valign="top" width="50%">
+
+**Secretless / Public OAuth 2.1 (PKCE) Quick Start**
+
+```bash
+# 1. Credentials
+export MCP_ENABLE_OAUTH21=true
+export GOOGLE_OAUTH_CLIENT_ID="..."
+export WORKSPACE_MCP_PORT=8000
+export GOOGLE_OAUTH_REDIRECT_URI="http://localhost:${WORKSPACE_MCP_PORT}/oauth2callback"
+export OAUTHLIB_INSECURE_TRANSPORT=1
+# Leave GOOGLE_OAUTH_CLIENT_SECRET unset for public PKCE clients
+export FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY="$(openssl rand -hex 32)"
+
+# 2. Launch — OAuth 2.1 requires HTTP transport
+uvx workspace-mcp --transport streamable-http --tool-tier core
+uvx workspace-mcp --transport streamable-http --tool-tier extended
+uvx workspace-mcp --transport streamable-http --tool-tier complete
+
+# Or cherry-pick services
+uv run main.py --transport streamable-http --tools gmail drive calendar
+```
+
+</td>
+</tr>
+</table>
+
 <sub>[Credential setup →](#-credential-configuration) · [All launch options →](#start-the-server) · [Tier details →](#tool-tiers)</sub>
 
 <details open>
@@ -197,31 +238,51 @@ uv run main.py --tools gmail drive calendar
 |----------|:---:|---------|
 | **🔐 Authentication** | | |
 | `GOOGLE_OAUTH_CLIENT_ID` | **required** | OAuth client ID from Google Cloud |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | **required** | OAuth client secret |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | | OAuth client secret for confidential clients; optional for public OAuth 2.1 PKCE clients |
 | `OAUTHLIB_INSECURE_TRANSPORT` | **required**&ast; | Set to `1` for development — allows `http://` redirect |
 | `USER_GOOGLE_EMAIL` | | Default email for single-user auth |
 | `GOOGLE_CLIENT_SECRET_PATH` | | Custom path to `client_secret.json` |
 | `GOOGLE_MCP_CREDENTIALS_DIR` | | Credential directory — default `~/.google_workspace_mcp/credentials` |
 | **🖥️ Server** | | |
 | `WORKSPACE_MCP_BASE_URI` | | Base server URI (no port) — default `http://localhost` |
-| `WORKSPACE_MCP_PORT` | | Listening port — default `8000` |
-| `WORKSPACE_MCP_HOST` | | Bind host — default `0.0.0.0` |
+| `WORKSPACE_MCP_PORT` | | Listening port — default `8000`. Also controls the stdio-mode OAuth callback port. The `PORT` env var takes precedence if set. |
+| `WORKSPACE_MCP_HOST` | | Bind host — default `0.0.0.0` for OAuth 2.1 HTTP, `127.0.0.1` for legacy streamable HTTP. |
+| `WORKSPACE_MCP_TRANSPORT` | | `stdio` or `streamable-http`; used when `--transport` is not passed |
+| `WORKSPACE_MCP_HTTP_PORT` | | Advanced legacy-stdio sidecar `/mcp` port for local `workspace-cli` access. Disabled when empty. Binds to `127.0.0.1` only and is accessible to local processes. |
 | `WORKSPACE_EXTERNAL_URL` | | External URL for reverse proxy setups |
-| `WORKSPACE_ATTACHMENT_DIR` | | Downloaded attachments dir — default `~/.workspace-mcp/attachments/` |
+| `WORKSPACE_MCP_BRAND_NAME` | | OAuth 2.1 consent-page server name — default FastMCP's name |
+| `WORKSPACE_MCP_BRAND_ICON_URL` | | OAuth 2.1 consent-page logo (hosted URL or `data:` URI), shown at 64px wide — default FastMCP's logo |
+| `WORKSPACE_MCP_BRAND_WEBSITE_URL` | | OAuth 2.1 consent-page website link |
+| `WORKSPACE_ATTACHMENT_DIR` | | Downloaded attachments dir and default trusted local attachment directory — default `~/.workspace-mcp/attachments/` |
 | `WORKSPACE_MCP_URL` | | Remote MCP endpoint URL for CLI |
 | `ALLOWED_FILE_DIRS` | | Colon-separated allowlist for local file reads |
+| **🧰 Tool Selection** | | |
+| `WORKSPACE_MCP_TOOLS` | | Comma-separated services, e.g. `gmail,drive,calendar`; empty means all services |
+| `WORKSPACE_MCP_TOOL_TIER` | | `core`, `extended`, or `complete`; empty means all tools |
+| `WORKSPACE_MCP_READ_ONLY` | | `true`, `1`, or `yes` to request read-only scopes and filter write tools |
+| `WORKSPACE_MCP_PERMISSIONS` | | Space-separated `service:level` entries, e.g. `gmail:send drive:readonly`; mutually exclusive with tools and read-only |
 | **🔑 OAuth 2.1 & Multi-User** | | |
-| `MCP_ENABLE_OAUTH21` | | `true` to enable OAuth 2.1 multi-user support |
+| `MCP_ENABLE_OAUTH21` | | `true` to enable OAuth 2.1 multi-user support. Required for remote or shared HTTP endpoints (`--transport streamable-http`); optional for local-only legacy HTTP, which binds to `127.0.0.1` by default. |
 | `EXTERNAL_OAUTH21_PROVIDER` | | `true` for external OAuth flow with bearer tokens |
 | `WORKSPACE_MCP_STATELESS_MODE` | | `true` for stateless container-friendly operation |
+| `WORKSPACE_MCP_LOG_DIR` | | Directory for `mcp_server_debug.log` — defaults to `~/.google_workspace_mcp/logs` |
 | `GOOGLE_OAUTH_REDIRECT_URI` | | Override OAuth callback URL — default auto-constructed |
 | `OAUTH_CUSTOM_REDIRECT_URIS` | | Comma-separated additional redirect URIs |
 | `OAUTH_ALLOWED_ORIGINS` | | Comma-separated additional CORS origins |
 | `WORKSPACE_MCP_OAUTH_PROXY_STORAGE_BACKEND` | | `memory`, `disk`, or `valkey` — see [storage backends](#oauth-proxy-storage-backends) |
-| `FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY` | | Custom encryption key for OAuth proxy storage |
+| `FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY` | | Custom encryption key for OAuth proxy storage; required for public OAuth 2.1 clients when `GOOGLE_OAUTH_CLIENT_SECRET` is omitted |
+| `WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS` | | Comma-separated allowlist of redirect URIs that dynamically-registered OAuth clients may use. Default is unset (any URI permitted, per DCR). Supports FastMCP's glob patterns (`*`, `*.example.com`) |
+| **🗄️ Credential Store** | | |
+| `WORKSPACE_MCP_CREDENTIAL_STORE_BACKEND` | | `local_directory` (default) or `gcs` — see [credential store system](#credential-store-system) |
+| `WORKSPACE_MCP_CREDENTIALS_DIR` | | Directory for the `local_directory` backend |
+| `GOOGLE_MCP_CREDENTIALS_DIR` | | Backward-compatible alias for `WORKSPACE_MCP_CREDENTIALS_DIR` |
+| `WORKSPACE_MCP_GCS_BUCKET` | | **Required when backend is `gcs`** — GCS bucket name |
+| `WORKSPACE_MCP_GCS_PREFIX` | | Optional object-name prefix for the `gcs` backend |
+| `WORKSPACE_MCP_GCS_REQUIRE_CMEK` | | `true` to require a bucket default KMS key at startup (fails fast if unset) |
 | **🔧 Service Account** | | |
 | `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` | | Path to service account JSON key file (domain-wide delegation) |
 | `GOOGLE_SERVICE_ACCOUNT_KEY_JSON` | | Inline service account JSON key (alternative to file) |
+| `DWD_ALLOWED_DOMAINS` | | Comma-separated domain allowlist for per-request impersonation (optional) |
 | **🔍 Custom Search** | | |
 | `GOOGLE_PSE_API_KEY` | | API key for Programmable Search Engine |
 | `GOOGLE_PSE_ENGINE_ID` | | Search Engine ID for PSE |
@@ -233,14 +294,9 @@ uv run main.py --tools gmail drive calendar
 
 ---
 
-### One-Click Claude Desktop Install
+### Quick Start — Connect Claude to Google Workspace
 
-> `.dxt` bundles server, deps & manifest — download → double-click → done. No terminal, no JSON editing.
-
-1. **Download** the latest `google_workspace_mcp.dxt` from [Releases](https://github.com/taylorwilsdon/google_workspace_mcp/releases)
-2. **Install** — double-click the file, Claude Desktop prompts to install
-3. **Configure** — Settings → Extensions → Google Workspace MCP, paste your OAuth credentials
-4. **Use it** — start a new Claude chat and call any Google Workspace tool
+The recommended setup is to run an instance and connect Claude to it via a **Connector**. Full instructions at **[workspacemcp.com/quick-start](https://workspacemcp.com/quick-start)**.
 
 <div align="center">
   <video width="832" src="https://github.com/user-attachments/assets/83cca4b3-5e94-448b-acb3-6e3a27341d3a"></video>
@@ -252,6 +308,14 @@ uv run main.py --tools gmail drive calendar
 
 **Python 3.10+** · **[uv/uvx](https://github.com/astral-sh/uv)** · **Google Cloud Project** with OAuth 2.0 credentials
 
+If you want the GCS credential store backend, install the optional dependency first:
+
+```bash
+uv sync --extra gcs
+# or
+pip install "workspace-mcp[gcs]"
+```
+
 ### Configuration
 
 <details open>
@@ -259,8 +323,8 @@ uv run main.py --tools gmail drive calendar
 
 1. **Create Project** — [Open Console →](https://console.cloud.google.com/) → Create new project
 2. **Create OAuth Credentials** — APIs & Services → Credentials → Create Credentials → OAuth Client ID
-   - Choose **Desktop Application** (no redirect URIs needed!)
-   - Download and note your Client ID & Client Secret
+   - Choose **Desktop Application** for a public PKCE client (no redirect URIs needed) or **Web Application** for a confidential client
+   - Download and note your Client ID and, if issued, Client Secret
 3. **Enable APIs** — APIs & Services → Library, then enable each service:
 
    | | | | |
@@ -269,11 +333,14 @@ uv run main.py --tools gmail drive calendar
    | [Sheets](https://console.cloud.google.com/flows/enableapi?apiid=sheets.googleapis.com) | [Slides](https://console.cloud.google.com/flows/enableapi?apiid=slides.googleapis.com) | [Forms](https://console.cloud.google.com/flows/enableapi?apiid=forms.googleapis.com) | [Tasks](https://console.cloud.google.com/flows/enableapi?apiid=tasks.googleapis.com) |
    | [Chat](https://console.cloud.google.com/flows/enableapi?apiid=chat.googleapis.com) | [People](https://console.cloud.google.com/flows/enableapi?apiid=people.googleapis.com) | [Custom Search](https://console.cloud.google.com/flows/enableapi?apiid=customsearch.googleapis.com) | [Apps Script](https://console.cloud.google.com/flows/enableapi?apiid=script.googleapis.com) |
 
+   > **Google Chat needs extra setup.** Enabling the API is not enough — you must also configure a Chat app and use a Workspace account. See [Chat setup](#-google-chat) under the tool list.
+
 4. **Set Credentials** — see [Environment Variable Reference](#quick-start) above, or:
    ```bash
    export GOOGLE_OAUTH_CLIENT_ID="your-client-id"
    export GOOGLE_OAUTH_CLIENT_SECRET="your-secret"
    ```
+   For public OAuth 2.1 PKCE clients, omit `GOOGLE_OAUTH_CLIENT_SECRET` and set `FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY` instead.
 
 <sub>[Full OAuth documentation →](https://developers.google.com/workspace/guides/auth-overview) · [Credential setup details →](#-credential-configuration)</sub>
 
@@ -361,7 +428,9 @@ export GOOGLE_PSE_ENGINE_ID=\
 
 ### Start the Server
 
-> **📌 Transport Mode Guidance**: Use **streamable HTTP mode** (`--transport streamable-http`) for all modern MCP clients including Claude Code, VS Code MCP, and MCP Inspector. Stdio mode is only for clients with incomplete MCP specification support.
+> **📌 Transport Mode Guidance**: Use **streamable HTTP mode** (`--transport streamable-http`) for all modern MCP clients including Claude Code, VS Code MCP, and MCP Inspector. For Claude Desktop, run an instance and connect via a [Connector](https://workspacemcp.com/quick-start). Stdio mode is a legacy fallback. For deployments, prefer OAuth 2.1 with stateless mode (`MCP_ENABLE_OAUTH21=true`, `WORKSPACE_MCP_STATELESS_MODE=true`) unless you need local attachment or credential storage.
+
+> **OAuth state safety**: Legacy stdio starts a local-only OAuth callback server. In single-user mode only, it may recover a missing Google `state` parameter by consuming the most recent pending local OAuth state. This fallback is intentionally disabled outside single-user mode because it can cross session boundaries. Do not enable or emulate this behavior in streamable HTTP, hosted, or multi-user deployments; those modes must require an explicit state match.
 
 <details open>
 <summary>▶ <b>Launch Commands</b> <sub><sup>← Choose your startup mode</sup></sub></summary>
@@ -381,6 +450,8 @@ uv run main.py
 
 **◆ HTTP Mode (Recommended)**
 ```bash
+export MCP_ENABLE_OAUTH21=true
+export GOOGLE_OAUTH_CLIENT_ID="..."
 uv run main.py \
   --transport streamable-http
 ```
@@ -447,6 +518,16 @@ Granular permissions mode provides service-by-service scope control:
 - `--permissions` cannot be combined with `--tools`; enabled services are determined by the `--permissions` entries (optionally filtered by `--tool-tier`)
 - With `--tool-tier`, only tier-matched tools are enabled and only services that have tools in the selected tier are imported
 
+The `WORKSPACE_MCP_TOOLS`, `WORKSPACE_MCP_TOOL_TIER`, `WORKSPACE_MCP_READ_ONLY`, and `WORKSPACE_MCP_PERMISSIONS` environment variables provide the same controls for plugin and container installs. Empty strings are ignored. Non-empty malformed values fail closed at startup. Explicit CLI flags take precedence over mutually exclusive env vars.
+
+**Advanced legacy stdio sidecar**
+```bash
+# Optional bridge only for local legacy stdio sessions
+WORKSPACE_MCP_HTTP_PORT=8001 uv run main.py
+workspace-cli --url http://127.0.0.1:8001/mcp list
+```
+The sidecar is disabled unless `WORKSPACE_MCP_HTTP_PORT` is set. It only exists to bridge local `workspace-cli` calls into a legacy stdio server. Do not use it for normal Claude Code, VS Code, hosted, or multi-user deployments; use streamable HTTP with OAuth 2.1 instead. When enabled, it validates ports in the `1..65535` range, binds to `127.0.0.1`, and logs a warning if the port is already in use while keeping stdio running.
+
 **★ Tool Tiers**
 ```bash
 uv run main.py --tool-tier core      # ● Essential tools only
@@ -458,6 +539,8 @@ uv run main.py --tool-tier complete  # ○ All available tools
 ```bash
 docker build -t workspace-mcp .
 docker run -p 8000:8000 -v $(pwd):/app \
+  -e MCP_ENABLE_OAUTH21=true \
+  -e GOOGLE_OAUTH_CLIENT_ID="..." \
   workspace-mcp --transport streamable-http
 
 # With tool selection via environment variables
@@ -480,6 +563,12 @@ docker run -e TOOLS="gmail drive calendar" workspace-mcp
 The `workspace-cli` command lists tools and calls them against a running server — with encrypted, disk-backed OAuth token caching so you only authenticate once. On first run it opens a browser for Google consent; subsequent runs reuse the cached tokens automatically.
 
 Tokens are stored encrypted at `~/.workspace-mcp/cli-tokens/` using a Fernet key auto-generated at `~/.workspace-mcp/.cli-encryption-key`.
+
+To use workspace-cli globally, you'll want to start in this repo and run `uv tool install .`
+
+Once complete, you'll have workspace-cli available globally via `workspace-cli`
+
+Note: there is a public (but abandoned) pypi package with the same name - do not use uvx, as it will pull the wrong thing. 
 
 <details open>
 <summary>▶ <b>workspace-cli Commands</b> <sub><sup>← Persistent OAuth, no re-auth on every call</sup></sub></summary>
@@ -684,18 +773,20 @@ cp .env.oauth21 .env
 | <sub>Tool</sub> | <sub>Tier</sub> | <sub>Description</sub> |
 |------|------|-------------|
 | <sub>`search_drive_files`</sub> | <sub>Core</sub> | <sub>Search files with query syntax</sub> |
-| <sub>`get_drive_file_content`</sub> | <sub>Core</sub> | <sub>Read file content (Office formats)</sub> |
+| <sub>`get_drive_file_content`</sub> | <sub>Core</sub> | <sub>Read file content (Office, PDF, image)</sub> |
 | <sub>`get_drive_file_download_url`</sub> | <sub>Core</sub> | <sub>Download Drive files to local disk</sub> |
 | <sub>`create_drive_file`</sub> | <sub>Core</sub> | <sub>Create files or fetch from URLs</sub> |
 | <sub>`create_drive_folder`</sub> | <sub>Core</sub> | <sub>Create empty folders in Drive or shared drives</sub> |
 | <sub>`import_to_google_doc`</sub> | <sub>Core</sub> | <sub>Import files (MD, DOCX, HTML, etc.) as Google Docs</sub> |
+| <sub>`import_to_google_slides`</sub> | <sub>Core</sub> | <sub>Import presentation files (PPTX, PPT, ODP) as Google Slides</sub> |
+| <sub>`import_to_google_sheets`</sub> | <sub>Core</sub> | <sub>Import spreadsheet files (XLSX, CSV, TSV, etc.) as Google Sheets</sub> |
 | <sub>`get_drive_shareable_link`</sub> | <sub>Core</sub> | <sub>Get shareable links for a file</sub> |
-| <sub>`list_drive_items`</sub> | <sub>Extended</sub> | <sub>List folder contents</sub> |
+| <sub>`list_drive_items`</sub> | <sub>Extended</sub> | <sub>List folder contents or shared drives</sub> |
 | <sub>`copy_drive_file`</sub> | <sub>Extended</sub> | <sub>Copy existing files (templates) with optional renaming</sub> |
-| <sub>`update_drive_file`</sub> | <sub>Extended</sub> | <sub>Update file metadata, move between folders</sub> |
+| <sub>`update_drive_file`</sub> | <sub>Extended</sub> | <sub>Update metadata, move files, or replace Google Apps content</sub> |
 | <sub>`manage_drive_access`</sub> | <sub>Extended</sub> | <sub>Grant, update, revoke permissions, and transfer ownership</sub> |
 | <sub>`set_drive_file_permissions`</sub> | <sub>Extended</sub> | <sub>Set link sharing and file-level sharing settings</sub> |
-| <sub>`get_drive_file_permissions`</sub> | <sub>Complete</sub> | <sub>Get detailed file permissions</sub> |
+| <sub>`get_drive_file_permissions`</sub> | <sub>Complete</sub> | <sub>Get file metadata, parents, and permissions</sub> |
 | <sub>`check_drive_file_public_access`</sub> | <sub>Complete</sub> | <sub>Check public sharing status</sub> |
 
 #### 📧 Gmail <sub>[`gmail_tools.py`](gmail/gmail_tools.py)</sub>
@@ -781,6 +872,7 @@ Saved files expire after 1 hour and are cleaned up automatically.
 | <sub>`debug_table_structure`</sub> | <sub>Complete</sub> | <sub>Debug table issues</sub> |
 | <sub>`list_document_comments`</sub> | <sub>Complete</sub> | <sub>List all document comments</sub> |
 | <sub>`manage_document_comment`</sub> | <sub>Complete</sub> | <sub>Create, reply to, or resolve comments</sub> |
+| <sub>`manage_doc_tab`</sub> | <sub>Complete</sub> | <sub>Create, rename, delete, or populate tabs from markdown</sub> |
 
 #### 📊 Google Sheets <sub>[`sheets_tools.py`](gsheets/sheets_tools.py)</sub>
 
@@ -794,6 +886,7 @@ Saved files expire after 1 hour and are cleaned up automatically.
 | <sub>`format_sheet_range`</sub> | <sub>Extended</sub> | <sub>Apply colors, number formats, text wrapping, alignment, bold/italic, font size</sub> |
 | <sub>`list_sheet_tables`</sub> | <sub>Extended</sub> | <sub>List structured tables with IDs, names, ranges, and columns</sub> |
 | <sub>`create_sheet`</sub> | <sub>Complete</sub> | <sub>Add sheets to existing files</sub> |
+| <sub>`move_sheet_rows`</sub> | <sub>Complete</sub> | <sub>Move rows between sheets within a spreadsheet</sub> |
 | <sub>`append_table_rows`</sub> | <sub>Complete</sub> | <sub>Append rows to a structured table, auto-extending the table range</sub> |
 | <sub>`list_spreadsheet_comments`</sub> | <sub>Complete</sub> | <sub>List all spreadsheet comments</sub> |
 | <sub>`manage_spreadsheet_comment`</sub> | <sub>Complete</sub> | <sub>Create, reply to, or resolve comments</sub> |
@@ -857,6 +950,40 @@ Saved files expire after 1 hour and are cleaned up automatically.
 | <sub>`create_reaction`</sub> | <sub>Core</sub> | <sub>Add emoji reaction to a message</sub> |
 | <sub>`download_chat_attachment`</sub> | <sub>Extended</sub> | <sub>Download attachment from a chat message</sub> |
 
+<details>
+<summary>💬 <b>Chat setup — required before any Chat tool works</b></summary>
+
+Unlike other Workspace services, **enabling the Chat API is not enough** — the Chat API refuses every request until you configure a Chat app, and it only works with Google Workspace accounts. Two extra steps are required:
+
+**1. Configure the Chat app**
+
+Enabling `chat.googleapis.com` alone causes every Chat tool to fail. You must also complete the **Configuration** tab so the API has an app identity to attach requests to:
+
+- Open [Chat API → Configuration](https://console.cloud.google.com/apis/api/chat.googleapis.com/hangouts-chat) (APIs & Services → Enabled APIs → Google Chat API → **Configuration**)
+- Fill in the three required fields under **Application info**:
+  - **App name** — e.g. `Workspace MCP` (up to 25 characters)
+  - **Avatar URL** — any HTTPS URL to a square PNG/JPEG (e.g. `https://developers.google.com/chat/images/quickstart-app-avatar.png`)
+  - **Description** — e.g. `Workspace MCP` (up to 40 characters)
+- Click **Save**
+
+> This server authenticates **as the signed-in user** (user OAuth), not as a bot. You do **not** need to enable interactive features, create a service account, or publish the app — the Configuration form above is the only Chat-specific setup required.
+
+**2. Use a Google Workspace account**
+
+The Chat API is **not available to personal `@gmail.com` accounts**. Configuring it with one returns:
+
+```text
+Google Chat API is only available to Google Workspace users.
+```
+
+Sign in with a Business/Enterprise Google Workspace account (the same account you pass as `user_google_email`).
+
+The required scopes (`chat.spaces.readonly`, `chat.messages.readonly`, `chat.messages`, `chat.spaces`) are requested automatically during the OAuth flow — no manual scope configuration is needed.
+
+<sub>[Configure the Chat API →](https://developers.google.com/workspace/chat/configure-chat-api) · [User authentication →](https://developers.google.com/workspace/chat/authenticate-authorize-chat-user)</sub>
+
+</details>
+
 #### 🔍 Google Custom Search <sub>[`search_tools.py`](gsearch/search_tools.py)</sub>
 
 | <sub>Tool</sub> | <sub>Tier</sub> | <sub>Description</sub> |
@@ -891,19 +1018,16 @@ Saved files expire after 1 hour and are cleaned up automatically.
 
 ### Connect to Claude Desktop
 
-The server supports two transport modes:
+The recommended way to use Google Workspace MCP with Claude Desktop is to run a server instance and connect Claude to it via a **Connector**. This provides proper OAuth flow, multi-user support, and the best experience.
 
-#### Stdio Mode (Legacy - For Clients with Incomplete MCP Support)
+See the **[Quick Start Guide](https://workspacemcp.com/quick-start)** for setup instructions.
 
-> **⚠️ Important**: Stdio mode is a **legacy fallback** for clients that don't properly implement the MCP specification with OAuth 2.1 and streamable HTTP support. **Claude Code and other modern MCP clients should use streamable HTTP mode** (`--transport streamable-http`) for proper OAuth flow and multi-user support.
+<details>
+<summary>📝 <b>Legacy: Manual stdio configuration</b> <sub><sup>← For clients without Connector support</sup></sub></summary>
 
-In general, you should use the one-click DXT installer package for Claude Desktop.
-If you are unable to for some reason, you can configure it manually via `claude_desktop_config.json`
-
-**Manual Claude Configuration (Alternative)**
-
-<details open>
-<summary>📝 <b>Claude Desktop JSON Config</b> <sub><sup>← Click for manual setup instructions</sup></sub></summary>
+> **⚠️ Note**: Stdio mode is a legacy fallback for clients that don't support Connectors. Prefer the Connector-based approach above.
+>
+> **OAuth callback caveat**: The legacy stdio callback path includes a local recovery fallback for rare Google redirects that omit the `state` parameter, but only when `--single-user` is active. That recovery can only be safe in a single-user local process; in HTTP or hosted multi-user scenarios it could consume another user's pending OAuth state. There is no environment variable to enable this globally.
 
 1. Open Claude Desktop Settings → Developer → Edit Config
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -984,14 +1108,14 @@ uv run pytest
 ```
 
 - `uv sync --group test` installs only the testing stack if you need a slimmer environment.
-- `uv run main.py --transport streamable-http` launches the server with your checked-out code for manual verification.
+- `MCP_ENABLE_OAUTH21=true GOOGLE_OAUTH_CLIENT_ID=... uv run main.py --transport streamable-http` launches the HTTP server with your checked-out code for manual verification.
 - Ruff is part of the `dev` group because pre-push hooks call `ruff check` automatically—run it locally before committing to avoid hook failures.
 
 </details>
 
 ### OAuth 2.1 Support (Multi-User Bearer Token Authentication)
 
-The server includes OAuth 2.1 support for bearer token authentication, enabling multi-user session management. **OAuth 2.1 automatically reuses your existing `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` credentials** - no additional configuration needed!
+The server includes OAuth 2.1 support for bearer token authentication, enabling multi-user session management. **OAuth 2.1 automatically reuses your existing `GOOGLE_OAUTH_CLIENT_ID` and, for confidential clients, `GOOGLE_OAUTH_CLIENT_SECRET` credentials** - no additional Google-side configuration needed. Public PKCE clients are also supported: if you omit `GOOGLE_OAUTH_CLIENT_SECRET`, set `FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY` explicitly.
 
 **When to use OAuth 2.1:**
 - Multiple users accessing the same MCP server instance
@@ -1018,18 +1142,36 @@ export MCP_ENABLE_OAUTH21=true
 uv run main.py --transport streamable-http
 ```
 
-If `MCP_ENABLE_OAUTH21` is not set to `true`, the server will use legacy authentication, which is suitable for clients that do not support OAuth 2.1.
+If `MCP_ENABLE_OAUTH21` is not set to `true`, the server uses legacy authentication. In `streamable-http` mode, legacy authentication binds to `127.0.0.1` by default to keep cached Google credentials local. Set `WORKSPACE_MCP_HOST` explicitly only for trusted networks; use OAuth 2.1 for remote or shared HTTP deployments.
+
+Streamable HTTP requests with an `Origin` header are checked against loopback origins, `WORKSPACE_EXTERNAL_URL`, and `OAUTH_ALLOWED_ORIGINS` to reduce DNS-rebinding risk. Non-browser MCP clients that omit `Origin` are unaffected.
+
+> **vscode-webview origins**: Origins with the `vscode-webview://` scheme are scoped per-extension using the authority component (e.g. `vscode-webview://publisher.extension`). Adding a vscode-webview URI to `OAUTH_ALLOWED_ORIGINS` permits only the specific extension identified by that authority; other extensions are rejected.
 
 <details open>
 <summary>🔐 <b>How the FastMCP GoogleProvider handles OAuth</b> <sub><sup>← Advanced OAuth 2.1 details</sup></sub></summary>
 
 FastMCP ships a native `GoogleProvider` that we now rely on directly. It solves the two tricky parts of using Google OAuth with MCP clients:
 
-1.  **Dynamic Client Registration**: Google still doesn't support OAuth 2.1 DCR, but the FastMCP provider exposes the full DCR surface and forwards registrations to Google using your fixed credentials. MCP clients register as usual and the provider hands them your Google client ID/secret under the hood.
+1.  **Dynamic Client Registration**: Google still doesn't support OAuth 2.1 DCR, but the FastMCP provider exposes the full DCR surface and forwards registrations to Google using your fixed credentials. MCP clients register as usual and the provider hands them your Google client ID and, when configured, client secret under the hood.
 
 2.  **CORS & Browser Compatibility**: The provider includes an OAuth proxy that serves all discovery, authorization, and token endpoints with proper CORS headers. We no longer maintain custom `/oauth2/*` routes—the provider handles the upstream exchanges securely and advertises the correct metadata to clients.
 
 The result is a leaner server that still enables any OAuth 2.1 compliant client (including browser-based ones) to authenticate through Google without bespoke code.
+
+**Restricting DCR client redirect URIs:**
+
+By default, any client going through Dynamic Client Registration can declare any `redirect_uri`. For publicly-exposed deployments, this is a phishing vector — an attacker can register a client with a `redirect_uri` they control and harvest authorization codes from tricked users. Set `WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS` to a comma-separated allowlist of permitted URIs:
+
+```bash
+# Public deployment — restrict to Claude's hosted OAuth callbacks
+export WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS="https://claude.ai/api/mcp/auth_callback,https://claude.com/api/mcp/auth_callback"
+
+# Add Claude Code CLI (loopback redirects on ephemeral ports)
+export WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS="https://claude.ai/api/mcp/auth_callback,https://claude.com/api/mcp/auth_callback,http://localhost:*/callback,http://127.0.0.1:*/callback"
+```
+
+Patterns use FastMCP's matcher: `*` wildcards any port or path component; `*.example.com` matches subdomains. Leaving the variable unset preserves the default DCR behaviour (any URI accepted), which is appropriate for local development but unsafe for public deployments.
 
 </details>
 
@@ -1041,6 +1183,7 @@ The server supports a stateless mode designed for containerized environments whe
 ```bash
 # Stateless mode requires OAuth 2.1 to be enabled
 export MCP_ENABLE_OAUTH21=true
+export GOOGLE_OAUTH_CLIENT_ID="..."
 export WORKSPACE_MCP_STATELESS_MODE=true
 uv run main.py --transport streamable-http
 ```
@@ -1114,7 +1257,7 @@ export WORKSPACE_MCP_OAUTH_PROXY_VALKEY_PORT=6379
 | `WORKSPACE_MCP_OAUTH_PROXY_VALKEY_REQUEST_TIMEOUT_MS` | 5000 | Request timeout for remote hosts |
 | `WORKSPACE_MCP_OAUTH_PROXY_VALKEY_CONNECTION_TIMEOUT_MS` | 10000 | Connection timeout for remote hosts |
 
-**Encryption:** Disk and Valkey storage are encrypted with Fernet. The encryption key is derived from `FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY` if set, otherwise from `GOOGLE_OAUTH_CLIENT_SECRET`.
+**Encryption:** Disk and Valkey storage are encrypted with Fernet. The encryption key is derived from `FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY` if set, otherwise from `GOOGLE_OAUTH_CLIENT_SECRET`. Public OAuth 2.1 client setups without a client secret must set `FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY`.
 
 </details>
 
@@ -1126,6 +1269,7 @@ The server supports an external OAuth 2.1 provider mode for scenarios where auth
 ```bash
 # External OAuth provider mode requires OAuth 2.1 to be enabled
 export MCP_ENABLE_OAUTH21=true
+export GOOGLE_OAUTH_CLIENT_ID="..."
 export EXTERNAL_OAUTH21_PROVIDER=true
 uv run main.py --transport streamable-http
 ```
@@ -1145,7 +1289,7 @@ uv run main.py --transport streamable-http
 
 **Requirements:**
 - Must be used with `MCP_ENABLE_OAUTH21=true`
-- OAuth credentials still required for token validation (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`)
+- OAuth client ID still required for token validation; client secret is optional for public clients (`GOOGLE_OAUTH_CLIENT_ID`, optional `GOOGLE_OAUTH_CLIENT_SECRET`)
 - External system must obtain valid Google OAuth access tokens (ya29.*)
 - Each tool call request must include valid bearer token
 
@@ -1197,8 +1341,21 @@ uv run main.py
 **Key Behaviors:**
 - The OAuth callback server is not started (no interactive auth needed)
 - Credentials directory permission checks are skipped
-- **All operations impersonate the configured `USER_GOOGLE_EMAIL`** — any email addresses supplied in tool calls (e.g., `user_email` parameters) are ignored. This differs from OAuth modes where each user authenticates separately.
+- When a tool call supplies `user_google_email`, service account mode uses that email as the domain-wide delegation impersonation subject.
+- `USER_GOOGLE_EMAIL` is still required and serves as the fallback when no caller email is provided.
 - The service account key is validated at startup (checks for required fields and correct type)
+
+**Per-Request Impersonation:**
+
+The caller-supplied `user_google_email` on each tool call is used as the DWD impersonation subject instead of the static `USER_GOOGLE_EMAIL`. This lets a single server instance act on behalf of multiple domain users.
+
+```bash
+# Optional: restrict which domains may be impersonated
+export DWD_ALLOWED_DOMAINS="corp.com,subsidiary.io"
+```
+
+- If `DWD_ALLOWED_DOMAINS` is set, only emails whose domain appears in the comma-separated list are accepted; all others raise an authentication error.
+- If `DWD_ALLOWED_DOMAINS` is unset, any email accepted by the service account's delegation scope is allowed.
 
 ### VS Code MCP Client Support
 
@@ -1218,7 +1375,9 @@ uv run main.py
 }
 ```
 
-*Note: Make sure to start the server with `--transport streamable-http` when using VS Code MCP.*
+*Note: Make sure to start the server with `--transport streamable-http` when using VS Code MCP. For remote or shared HTTP endpoints, see the [OAuth 2.1 note in the HTTP Mode section](#http-mode-for-debugging-or-web-interfaces).*
+
+> **Origin validation**: VS Code webview clients send a `vscode-webview://<extension-id>` origin, which is rejected by default. Add the specific origin to `OAUTH_ALLOWED_ORIGINS` (e.g. `OAUTH_ALLOWED_ORIGINS=vscode-webview://your.extension-id`) to permit it. Connections to a `localhost`/`127.0.0.1` URL are allowed without extra configuration.
 </details>
 
 ### Claude Code MCP Client Support
@@ -1230,11 +1389,19 @@ uv run main.py
 
 ```bash
 # Start the server in HTTP mode first
+export MCP_ENABLE_OAUTH21=true
+export GOOGLE_OAUTH_CLIENT_ID="..."
 uv run main.py --transport streamable-http
 
 # Then add to Claude Code
 claude mcp add --transport http workspace-mcp http://localhost:8000/mcp
+
+# Optional: install the bundled Claude skill for better Workspace tool routing
+mkdir -p ~/.claude/skills
+ln -s "$(pwd)/skills/managing-google-workspace" ~/.claude/skills/managing-google-workspace
 ```
+
+Or copy `skills/managing-google-workspace` into `~/.claude/skills/managing-google-workspace` if you prefer not to symlink it.
 </details>
 
 #### Reverse Proxy Setup
@@ -1264,6 +1431,23 @@ You also have options for:
 - Use `GOOGLE_OAUTH_REDIRECT_URI` when you only need to override the callback URL
 - The redirect URI must exactly match what's configured in your Google Cloud Console
 - Your reverse proxy must forward OAuth-related requests (`/oauth2callback`, `/oauth2/*`, `/.well-known/*`) to the MCP server
+- Do **not** set `Referrer-Policy: no-referrer` on your proxy. It makes browsers send `Origin: null` on the same-origin consent `POST`, which origin validation rejects with `{"error": "Origin not allowed"}` (logged as `Rejected HTTP request from Origin: null`) even when `WORKSPACE_EXTERNAL_URL` is correct. Use `strict-origin-when-cross-origin` (the browser default) or `same-origin` instead.
+- Some clients send `Origin: null` on the consent `POST` even with correct headers — Chrome serializes the form origin as opaque after the cross-origin OAuth redirect chain (seen with the Claude Code CLI flow). If you hit this, strip **only** a literal `null` `Origin` for the `/consent` endpoint. The consent endpoint is CSRF-protected by its unguessable `txn_id`, and nginx sends the empty-valued `Origin` header as an empty value that ASGI decodes to `b""`; the middleware validates only when `raw_origin` is truthy, so empty bytes skip this request while real origins still pass through and get validated:
+
+  ```nginx
+  location ^~ /consent {
+      set $consent_origin $http_origin;
+      if ($http_origin = "null") { set $consent_origin ""; }
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_set_header Origin $consent_origin;
+      proxy_pass http://127.0.0.1:<port>;
+  }
+  ```
 
 <details open>
 <summary>🚀 <b>Advanced uvx Commands</b> <sub><sup>← More startup options</sup></sub></summary>
@@ -1280,6 +1464,8 @@ uvx workspace-mcp --tool-tier extended  # Core + additional features
 uvx workspace-mcp --tool-tier complete  # All tools
 
 # Start in HTTP mode for debugging
+export MCP_ENABLE_OAUTH21=true
+export GOOGLE_OAUTH_CLIENT_ID="..."
 uvx workspace-mcp --transport streamable-http
 ```
 </details>
@@ -1337,22 +1523,30 @@ If you need to use HTTP mode with Claude Desktop:
 }
 ```
 
-*Note: Make sure to start the server with `--transport streamable-http` when using HTTP mode.*
+*Note: Make sure to start the server with `--transport streamable-http` when using HTTP mode. For remote or shared HTTP endpoints, also enable OAuth 2.1 with `MCP_ENABLE_OAUTH21=true` and `GOOGLE_OAUTH_CLIENT_ID`.*
 
 ### First-Time Authentication
 
-The server uses **Google Desktop OAuth** for simplified authentication:
+Legacy local authentication uses the Google OAuth consent flow. In `stdio` mode, the server tries to open the browser automatically so long Google OAuth URLs do not wrap in terminals or get corrupted during copy/paste, which improves reliability of the redirect flow.
 
-- **No redirect URIs needed**: Desktop OAuth clients handle authentication without complex callback URLs
-- **Automatic flow**: The server manages the entire OAuth process transparently
-- **Transport-agnostic**: Works seamlessly in both stdio and HTTP modes
+- In `stdio` mode, the server starts a local callback listener and tries to open the Google authorization page in your browser automatically.
+- If the browser cannot be opened, the tool response includes the authorization URL to open manually.
+- In `streamable-http` / OAuth 2.1 mode, use your MCP client's OAuth flow instead; the server does not try to open a browser on the host running the HTTP service.
+- When a legacy local auth tool call provides `user_google_email`, the server adds that value as `login_hint` on the Google authorization URL so Google can pre-select the account on the consent screen. This applies to the `stdio` flow whether the server opens the browser or returns the URL; `streamable-http` / OAuth 2.1 flows still rely on the MCP client's OAuth flow.
+
+Example:
+
+```text
+user_google_email="alex@example.com"
+Authorization URL: https://accounts.google.com/o/oauth2/v2/auth?...&login_hint=alex%40example.com
+```
 
 When calling a tool:
-1. Server returns authorization URL
-2. Open URL in browser and authorize
-3. Google provides an authorization code
-4. Paste the code when prompted (or it's handled automatically)
-5. Server completes authentication and retries your request
+1. If an opened browser page appears, complete Google authorization there.
+2. If no browser opens, open the returned authorization URL manually and complete Google authorization there.
+3. After successful authorization, the callback page displays the authenticated email address.
+4. Retry the original tool call with that email as `user_google_email`; the server needs this value to associate the stored Google credentials with the tool request, so the original request is not authorized until it is retried.
+5. Server completes authentication using the stored Google credentials.
 
 ---
 
@@ -1392,29 +1586,54 @@ async def your_new_tool(service, param1: str, param2: int = 10):
 
 ### Credential Store System
 
-The server includes an abstract credential store API and a default backend for managing Google OAuth
-credentials with support for multiple storage backends:
+The server includes an abstract credential store API with pluggable backends for managing Google OAuth credentials:
 
 **Features:**
 - **Abstract Interface**: `CredentialStore` base class defines standard operations (get, store, delete, list users)
-- **Local File Storage**: `LocalDirectoryCredentialStore` implementation stores credentials as JSON files
-- **Configurable Storage**: Environment variable `GOOGLE_MCP_CREDENTIALS_DIR` sets storage location
+- **Local File Storage**: `LocalDirectoryCredentialStore` — plaintext JSON files protected by filesystem permissions (0o600 / 0o700)
+- **GCS-Backed Storage**: `GCSCredentialStore` — stores each user's credentials as an object in a Google Cloud Storage bucket. Supports atomic read-modify-write via generation preconditions, first-class Cloud IAM / Audit Logs integration, and transparent bucket-level CMEK encryption at rest
+- **Configurable Storage**: Environment variables select backend and location
 - **Multi-User Support**: Store and manage credentials for multiple Google accounts
-- **Automatic Directory Creation**: Storage directory is created automatically if it doesn't exist
+- **Automatic Directory Creation**: Storage directory is created automatically if it doesn't exist (local backend)
 
 **Configuration:**
 ```bash
-# Optional: Set custom credentials directory
+# Install the optional dependency if you plan to use the GCS backend:
+# uv sync --extra gcs
+# or: pip install "workspace-mcp[gcs]"
+#
+# Select backend (default: local_directory). Supported: local_directory, gcs
+export WORKSPACE_MCP_CREDENTIAL_STORE_BACKEND="gcs"
+
+# --- local_directory options ---
+export WORKSPACE_MCP_CREDENTIALS_DIR="/path/to/credentials"
+# Backward-compatible alias:
 export GOOGLE_MCP_CREDENTIALS_DIR="/path/to/credentials"
 
-# Default locations (if GOOGLE_MCP_CREDENTIALS_DIR not set):
+# Default directory locations (if no directory env var is set):
 # - ~/.google_workspace_mcp/credentials (if home directory accessible)
 # - ./.credentials (fallback)
+
+# --- gcs options ---
+export WORKSPACE_MCP_GCS_BUCKET="my-workspace-mcp-tokens"   # required
+export WORKSPACE_MCP_GCS_PREFIX="credentials/"              # optional
+export WORKSPACE_MCP_GCS_REQUIRE_CMEK="true"                # optional; see below
 ```
+
+**Backend selection:**
+- `local_directory` (default): Plaintext JSON records. Suitable for local development and single-user stdio mode.
+  Existing pre-URL-encoding local credential filenames remain readable during migration; new writes use the URL-encoded filename mapping unless a legacy file already exists for that user.
+- `gcs`: Stores credentials as objects in a GCS bucket using the JSON API. Authenticates via Application Default Credentials — on Cloud Run this means the runtime service account needs `roles/storage.objectUser` (or equivalent) on the bucket. Does not support `list_users()` — designed for multi-user OAuth 2.1 mode where users are looked up individually by email.
+
+**CMEK enforcement (gcs backend):**
+
+By default GCS encrypts objects with Google-managed keys. For customer-managed encryption, set a default KMS key on the bucket (e.g. via Terraform's `google_storage_bucket.encryption.default_kms_key_name`). All credentials written to the bucket will inherit the key transparently — no application-level key to manage.
+
+To guard against accidentally deploying against a bucket without CMEK, set `WORKSPACE_MCP_GCS_REQUIRE_CMEK=true`. The store will verify the bucket has a default KMS key at startup and refuse to initialize otherwise. Note that this check reads bucket metadata, so the runtime service account additionally needs `storage.buckets.get` — grant `roles/storage.bucketViewer` on the bucket (or a custom role containing `storage.buckets.get`) in addition to the object-level role. `roles/storage.objectUser` alone covers only object operations.
 
 **Usage Example:**
 ```python
-from auth.credential_store import get_credential_store
+from auth.credential_store import get_credential_store, LocalDirectoryCredentialStore
 
 # Get the global credential store instance
 store = get_credential_store()
@@ -1425,8 +1644,11 @@ store.store_credential("user@example.com", credentials)
 # Retrieve credentials
 creds = store.get_credential("user@example.com")
 
-# List all users with stored credentials
-users = store.list_users()
+# List all users with stored credentials (local_directory backend only;
+# GCSCredentialStore intentionally does not support enumeration — use the
+# upstream identity provider to enumerate users instead).
+if isinstance(store, LocalDirectoryCredentialStore):
+    users = store.list_users()
 ```
 
 The credential store automatically handles credential serialization, expiry parsing, and provides error handling for storage operations.
@@ -1436,16 +1658,17 @@ The credential store automatically handles credential serialization, expiry pars
 ## <span style="color:#adbcbc">⊠ Security</span>
 - **Prompt Injection**: This MCP server has the capability to retrieve your email, calendar events and drive files. Those emails, events and files could potentially contain prompt injections - i.e. hidden white text that tells it to forward your emails to a different address. You should exercise caution and in general, only connect trusted data to an LLM!
 - **Credentials**: Never commit `.env`, `client_secret.json` or the `.credentials/` directory to source control!
-- **OAuth Callback**: Uses `http://localhost:8000/oauth2callback` for development (requires `OAUTHLIB_INSECURE_TRANSPORT=1`)
+- **OAuth Callback**: Uses `http://localhost:8000/oauth2callback` for development (requires `OAUTHLIB_INSECURE_TRANSPORT=1`). If another process is already using port 8000, set `WORKSPACE_MCP_PORT` to a free port to avoid conflicts — e.g. `export WORKSPACE_MCP_PORT=8123`. If you use a **web/confidential OAuth client** (not the recommended Desktop client), also update the redirect URI in Google Cloud Console to match the new port (e.g. `http://localhost:8123/oauth2callback`); Desktop and PKCE clients do not require this.
 - **Transport-Aware Callbacks**: Stdio mode starts a minimal HTTP server only for OAuth, ensuring callbacks work in all modes
 - **Production**: Use HTTPS & OAuth 2.1 and configure accordingly
 - **Scope Minimization**: Tools request only necessary permissions
-- **Local File Access Control**: Tools that read local files (e.g., attachments, `file://` uploads) are restricted to the user's home directory by default. Override this with the `ALLOWED_FILE_DIRS` environment variable:
+- **Local File Access Control**: Tools that read local files (e.g., attachments, `file://` uploads) are restricted to the managed attachment directory by default. Override this with the `ALLOWED_FILE_DIRS` environment variable if you intentionally need broader access:
   ```bash
   # Colon-separated list of directories (semicolon on Windows) from which local file reads are permitted
   export ALLOWED_FILE_DIRS="/home/user/documents:/data/shared"
   ```
-  Regardless of the allowlist, access to sensitive paths (`.env`, `.ssh/`, `.aws/`, `/etc/shadow`, credential files, etc.) is always blocked.
+  The managed attachment directory is controlled by `WORKSPACE_ATTACHMENT_DIR` and remains allowed even when `ALLOWED_FILE_DIRS` is set. Regardless of the allowlist, access to sensitive paths (`.env`, `.ssh/`, `.aws/`, `/etc/shadow`, credential files, etc.) is always blocked.
+- **Indirect Prompt Injection**: In agentic clients, email bodies, documents, and calendar events can contain malicious instructions that try to coerce the model into exfiltrating local files. Do not broaden `ALLOWED_FILE_DIRS` unless you trust the client, the model behavior, and the data sources it can read.
 
 ---
 

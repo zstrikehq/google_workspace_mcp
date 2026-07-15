@@ -18,6 +18,14 @@ from googleapiclient.discovery import build
 
 from auth.service_decorator import require_google_service
 from core.utils import handle_http_errors, StringList
+from gcalendar.calendar_helpers import (
+    _format_attachment_details,
+    _format_attendee_details,
+    _format_person,
+    _get_meeting_link,
+)
+
+from mcp.types import ToolAnnotations
 
 from core.server import server
 
@@ -205,101 +213,18 @@ def _preserve_existing_fields(
             event_body[field_name] = new_value
 
 
-def _get_meeting_link(item: Dict[str, Any]) -> str:
-    """Extract video meeting link from event conference data or hangoutLink."""
-    conference_data = item.get("conferenceData")
-    if conference_data and "entryPoints" in conference_data:
-        for entry_point in conference_data["entryPoints"]:
-            if entry_point.get("entryPointType") == "video":
-                uri = entry_point.get("uri", "")
-                if uri:
-                    return uri
-    hangout_link = item.get("hangoutLink", "")
-    if hangout_link:
-        return hangout_link
-    return ""
-
-
-def _format_attendee_details(
-    attendees: List[Dict[str, Any]], indent: str = "  "
-) -> str:
-    """
-      Format attendee details including response status, organizer, and optional flags.
-
-      Example output format:
-      "  user@example.com: accepted
-    manager@example.com: declined (organizer)
-    optional-person@example.com: tentative (optional)"
-
-      Args:
-          attendees: List of attendee dictionaries from Google Calendar API
-          indent: Indentation to use for newline-separated attendees (default: "  ")
-
-      Returns:
-          Formatted string with attendee details, or "None" if no attendees
-    """
-    if not attendees:
-        return "None"
-
-    attendee_details_list = []
-    for a in attendees:
-        email = a.get("email", "unknown")
-        response_status = a.get("responseStatus", "unknown")
-        optional = a.get("optional", False)
-        organizer = a.get("organizer", False)
-
-        detail_parts = [f"{email}: {response_status}"]
-        if organizer:
-            detail_parts.append("(organizer)")
-        if optional:
-            detail_parts.append("(optional)")
-
-        attendee_details_list.append(" ".join(detail_parts))
-
-    return f"\n{indent}".join(attendee_details_list)
-
-
-def _format_attachment_details(
-    attachments: List[Dict[str, Any]], indent: str = "  "
-) -> str:
-    """
-    Format attachment details including file information.
-
-
-    Args:
-        attachments: List of attachment dictionaries from Google Calendar API
-        indent: Indentation to use for newline-separated attachments (default: "  ")
-
-    Returns:
-        Formatted string with attachment details, or "None" if no attachments
-    """
-    if not attachments:
-        return "None"
-
-    attachment_details_list = []
-    for att in attachments:
-        title = att.get("title", "Untitled")
-        file_url = att.get("fileUrl", "No URL")
-        file_id = att.get("fileId", "No ID")
-        mime_type = att.get("mimeType", "Unknown")
-
-        attachment_info = (
-            f"{title}\n"
-            f"{indent}File URL: {file_url}\n"
-            f"{indent}File ID: {file_id}\n"
-            f"{indent}MIME Type: {mime_type}"
-        )
-        attachment_details_list.append(attachment_info)
-
-    return f"\n{indent}".join(attachment_details_list)
-
-
 # Helper function to ensure time strings for API calls are correctly formatted
 def _correct_time_format_for_api(
     time_str: Optional[str], param_name: str, timezone: Optional[str] = None
 ) -> Optional[str]:
     """Normalize a time string into RFC3339 format suitable for the Google Calendar API."""
     if not time_str:
+        return None
+
+    # Defensive normalization: some LLM-driven MCP clients double-encode JSON
+    # string arguments, passing values like '"2026-05-15T00:00:00Z"'
+    time_str = time_str.strip().strip('"').strip("'").strip()
+    if not time_str or time_str.lower() in ("null", "none"):
         return None
 
     logger.info(
@@ -393,7 +318,15 @@ def _strip_utc_offset(datetime_str: str) -> str:
     return re.sub(r"[+-]\d{2}:\d{2}$", "", datetime_str)
 
 
-@server.tool()
+@server.tool(
+    title="List Calendars",
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    ),
+)
 @handle_http_errors("list_calendars", is_read_only=True, service_type="calendar")
 @require_google_service("calendar", "calendar_read")
 async def list_calendars(service, user_google_email: str) -> str:
@@ -427,7 +360,15 @@ async def list_calendars(service, user_google_email: str) -> str:
     return text_output
 
 
-@server.tool()
+@server.tool(
+    title="Get Events",
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    ),
+)
 @handle_http_errors("get_events", is_read_only=True, service_type="calendar")
 @require_google_service("calendar", "calendar_read")
 async def get_events(
@@ -542,6 +483,9 @@ async def get_events(
 
         meeting_link = _get_meeting_link(item)
 
+        creator_str = _format_person(item.get("creator"))
+        organizer_str = _format_person(item.get("organizer"))
+
         event_details = (
             f"Event Details:\n"
             f"- Title: {summary}\n"
@@ -551,6 +495,10 @@ async def get_events(
             f"- Location: {location}\n"
             f"- Color ID: {color_id}\n"
         )
+        if creator_str:
+            event_details += f"- Creator: {creator_str}\n"
+        if organizer_str:
+            event_details += f"- Organizer: {organizer_str}\n"
         if meeting_link:
             event_details += f"- Meeting Link: {meeting_link}\n"
         event_details += (
@@ -594,11 +542,18 @@ async def get_events(
 
             meeting_link = _get_meeting_link(item)
 
+            creator_str = _format_person(item.get("creator"))
+            organizer_str = _format_person(item.get("organizer"))
+
             event_detail_parts = (
                 f'- "{summary}" (Starts: {start_time}, Ends: {end_time})\n'
                 f"  Description: {description}\n"
                 f"  Location: {location}\n"
             )
+            if creator_str:
+                event_detail_parts += f"  Creator: {creator_str}\n"
+            if organizer_str:
+                event_detail_parts += f"  Organizer: {organizer_str}\n"
             if meeting_link:
                 event_detail_parts += f"  Meeting Link: {meeting_link}\n"
             event_detail_parts += (
@@ -648,6 +603,92 @@ async def get_events(
 # ---------------------------------------------------------------------------
 
 
+# Friendly provider name -> conferenceSolution display name for the addOn block.
+_CONFERENCE_SOLUTION_NAMES = {
+    "zoom": "Zoom Meeting",
+    "webex": "Webex",
+    "teams": "Microsoft Teams",
+    "microsoft teams": "Microsoft Teams",
+}
+
+
+def _build_addon_conference_data(
+    provider: str,
+    uri: str,
+    passcode: Optional[str] = None,
+    conference_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Build a Google Calendar ``conferenceData`` block for a third-party add-on.
+
+    Used for providers (Zoom, Webex, Teams, ...) attached via the
+    ``conferenceSolution.key.type = "addOn"`` mechanism rather than the native
+    ``hangoutsMeet`` create request.
+    """
+    provider = provider.strip()
+    uri = uri.strip()
+    name = _CONFERENCE_SOLUTION_NAMES.get(provider.lower(), provider)
+    entry_point: Dict[str, Any] = {
+        "entryPointType": "video",
+        "uri": uri,
+        "label": name,
+    }
+    if passcode:
+        entry_point["passcode"] = passcode
+    conference_data: Dict[str, Any] = {
+        "conferenceSolution": {"key": {"type": "addOn"}, "name": name},
+        "entryPoints": [entry_point],
+    }
+    if conference_id:
+        conference_data["conferenceId"] = conference_id
+    return conference_data
+
+
+def _resolve_conference_data(
+    conference_data: Optional[Dict[str, Any]],
+    conference_provider: Optional[str],
+    conference_uri: Optional[str],
+    conference_passcode: Optional[str],
+    conference_id: Optional[str],
+    add_google_meet: Optional[bool],
+) -> Optional[Dict[str, Any]]:
+    """Resolve the conferencing inputs into a single ``conferenceData`` dict.
+
+    Accepts either a raw ``conference_data`` pass-through payload or the
+    higher-level ``conference_provider``/``conference_uri`` helper params, and
+    validates that they are not combined with each other or with
+    ``add_google_meet``. Returns the resolved payload, or ``None`` if no
+    third-party conference was requested.
+    """
+    helper_used = any(
+        [conference_provider, conference_uri, conference_passcode, conference_id]
+    )
+    if conference_data is not None and helper_used:
+        raise ValueError(
+            "Provide either conference_data (raw payload) or the "
+            "conference_provider/conference_uri helper params, not both."
+        )
+
+    resolved = conference_data
+    if helper_used:
+        provider = (conference_provider or "").strip()
+        uri = (conference_uri or "").strip()
+        if not (provider and uri):
+            raise ValueError(
+                "conference_provider and conference_uri are both required to "
+                "attach a third-party conference."
+            )
+        resolved = _build_addon_conference_data(
+            provider, uri, conference_passcode, conference_id
+        )
+
+    if resolved is not None and add_google_meet:
+        raise ValueError(
+            "Cannot attach a third-party conference and add_google_meet on the "
+            "same event; choose one."
+        )
+    return resolved
+
+
 async def _create_event_impl(
     service,
     user_google_email: str,
@@ -661,6 +702,7 @@ async def _create_event_impl(
     timezone: Optional[str] = None,
     attachments: Optional[List[str]] = None,
     add_google_meet: bool = False,
+    conference_data: Optional[Dict[str, Any]] = None,
     reminders: Optional[Union[str, List[Dict[str, Any]]]] = None,
     use_default_reminders: bool = True,
     transparency: Optional[str] = None,
@@ -669,6 +711,7 @@ async def _create_event_impl(
     guests_can_modify: Optional[bool] = None,
     guests_can_invite_others: Optional[bool] = None,
     guests_can_see_other_guests: Optional[bool] = None,
+    send_updates: str = "all",
 ) -> str:
     """Internal implementation for creating a calendar event."""
     logger.info(
@@ -766,6 +809,15 @@ async def _create_event_impl(
         logger.info(
             f"[create_event] Adding Google Meet conference with request ID: {request_id}"
         )
+    elif conference_data is not None:
+        event_body["conferenceData"] = conference_data
+        logger.info("[create_event] Attaching pre-generated conference data")
+
+    # conferenceDataVersion=1 is required whenever conferenceData is present,
+    # whether it's a native Meet create request or a pre-generated add-on payload.
+    conference_data_version = (
+        1 if (add_google_meet or conference_data is not None) else 0
+    )
 
     if attachments:
         # Accept both file URLs and file IDs. If a URL, extract the fileId.
@@ -844,7 +896,8 @@ async def _create_event_impl(
                     calendarId=calendar_id,
                     body=event_body,
                     supportsAttachments=True,
-                    conferenceDataVersion=1 if add_google_meet else 0,
+                    conferenceDataVersion=conference_data_version,
+                    sendUpdates=send_updates,
                 )
                 .execute()
             )
@@ -856,7 +909,8 @@ async def _create_event_impl(
                 .insert(
                     calendarId=calendar_id,
                     body=event_body,
-                    conferenceDataVersion=1 if add_google_meet else 0,
+                    conferenceDataVersion=conference_data_version,
+                    sendUpdates=send_updates,
                 )
                 .execute()
             )
@@ -864,16 +918,12 @@ async def _create_event_impl(
     link = created_event.get("htmlLink", "No link available")
     confirmation_message = f"Successfully created event '{created_event.get('summary', summary)}' for {user_google_email}. Link: {link}"
 
-    # Add Google Meet information if conference was created
-    if add_google_meet and "conferenceData" in created_event:
-        conference_data = created_event["conferenceData"]
-        if "entryPoints" in conference_data:
-            for entry_point in conference_data["entryPoints"]:
-                if entry_point.get("entryPointType") == "video":
-                    meet_link = entry_point.get("uri", "")
-                    if meet_link:
-                        confirmation_message += f" Google Meet: {meet_link}"
-                        break
+    # Surface the conferencing link (native Meet or third-party add-on) if present
+    if add_google_meet or conference_data is not None:
+        meeting_link = _get_meeting_link(created_event)
+        if meeting_link:
+            label = "Google Meet" if add_google_meet else "Conference"
+            confirmation_message += f" {label}: {meeting_link}"
 
     logger.info(
         f"Event created successfully for {user_google_email}. ID: {created_event.get('id')}, Link: {link}"
@@ -923,6 +973,7 @@ async def _modify_event_impl(
     attendees: Optional[Union[List[str], List[Dict[str, Any]]]] = None,
     timezone: Optional[str] = None,
     add_google_meet: Optional[bool] = None,
+    conference_data: Optional[Dict[str, Any]] = None,
     reminders: Optional[Union[str, List[Dict[str, Any]]]] = None,
     use_default_reminders: Optional[bool] = None,
     transparency: Optional[str] = None,
@@ -932,6 +983,7 @@ async def _modify_event_impl(
     guests_can_modify: Optional[bool] = None,
     guests_can_invite_others: Optional[bool] = None,
     guests_can_see_other_guests: Optional[bool] = None,
+    send_updates: str = "all",
 ) -> str:
     """Internal implementation for modifying a calendar event."""
     logger.info(
@@ -1043,6 +1095,28 @@ async def _modify_event_impl(
             f"[modify_event] Set guestsCanSeeOtherGuests to {guests_can_see_other_guests}"
         )
 
+    # Handle conference data
+    if conference_data is not None:
+        # Attach a pre-generated third-party conference (Zoom/Webex/Teams add-on)
+        event_body["conferenceData"] = conference_data
+        logger.info("[modify_event] Attaching pre-generated conference data")
+    elif add_google_meet is not None:
+        if add_google_meet:
+            request_id = str(uuid.uuid4())
+            event_body["conferenceData"] = {
+                "createRequest": {
+                    "requestId": request_id,
+                    "conferenceSolutionKey": {"type": "hangoutsMeet"},
+                }
+            }
+            logger.info(
+                f"[modify_event] Adding Google Meet conference with request ID: {request_id}"
+            )
+        else:
+            # Remove Google Meet by setting conferenceData to JSON null.
+            event_body["conferenceData"] = None
+            logger.info("[modify_event] Removing Google Meet conference")
+
     if timezone is not None and "start" not in event_body and "end" not in event_body:
         # If timezone is provided but start/end times are not, we need to fetch the existing event
         # to apply the timezone correctly. This is a simplification; a full implementation
@@ -1088,28 +1162,10 @@ async def _modify_event_impl(
             },
         )
 
-        # Handle Google Meet conference data
-        if add_google_meet is not None:
-            if add_google_meet:
-                # Add Google Meet
-                request_id = str(uuid.uuid4())
-                event_body["conferenceData"] = {
-                    "createRequest": {
-                        "requestId": request_id,
-                        "conferenceSolutionKey": {"type": "hangoutsMeet"},
-                    }
-                }
-                logger.info(
-                    f"[modify_event] Adding Google Meet conference with request ID: {request_id}"
-                )
-            else:
-                # Remove Google Meet by setting conferenceData to empty
-                event_body["conferenceData"] = {}
-                logger.info("[modify_event] Removing Google Meet conference")
-        elif "conferenceData" in existing_event:
-            # Preserve existing conference data if not specified
-            event_body["conferenceData"] = existing_event["conferenceData"]
-            logger.info("[modify_event] Preserving existing conference data")
+        if add_google_meet is None and "conferenceData" in existing_event:
+            logger.info(
+                "[modify_event] Existing conference data preserved via patch (not copied)"
+            )
 
     except HttpError as get_error:
         if get_error.resp.status == 404:
@@ -1123,15 +1179,15 @@ async def _modify_event_impl(
                 f"[modify_event] Error during pre-update verification, but proceeding with update: {get_error}"
             )
 
-    # Proceed with the update
     updated_event = await asyncio.to_thread(
         lambda: (
             service.events()
-            .update(
+            .patch(
                 calendarId=calendar_id,
                 eventId=event_id,
                 body=event_body,
                 conferenceDataVersion=1,
+                sendUpdates=send_updates,
             )
             .execute()
         )
@@ -1140,16 +1196,15 @@ async def _modify_event_impl(
     link = updated_event.get("htmlLink", "No link available")
     confirmation_message = f"Successfully modified event '{updated_event.get('summary', summary)}' (ID: {event_id}) for {user_google_email}. Link: {link}"
 
-    # Add Google Meet information if conference was added
-    if add_google_meet is True and "conferenceData" in updated_event:
-        conference_data = updated_event["conferenceData"]
-        if "entryPoints" in conference_data:
-            for entry_point in conference_data["entryPoints"]:
-                if entry_point.get("entryPointType") == "video":
-                    meet_link = entry_point.get("uri", "")
-                    if meet_link:
-                        confirmation_message += f" Google Meet: {meet_link}"
-                        break
+    # Surface the conferencing link (native Meet or third-party add-on) if present
+    if conference_data is not None:
+        meeting_link = _get_meeting_link(updated_event)
+        if meeting_link:
+            confirmation_message += f" Conference: {meeting_link}"
+    elif add_google_meet is True:
+        meeting_link = _get_meeting_link(updated_event)
+        if meeting_link:
+            confirmation_message += f" Google Meet: {meeting_link}"
     elif add_google_meet is False:
         confirmation_message += " (Google Meet removed)"
 
@@ -1164,6 +1219,7 @@ async def _delete_event_impl(
     user_google_email: str,
     event_id: str,
     calendar_id: str = "primary",
+    send_updates: str = "all",
 ) -> str:
     """Internal implementation for deleting a calendar event."""
     logger.info(
@@ -1198,7 +1254,13 @@ async def _delete_event_impl(
     # Proceed with the deletion
     await asyncio.to_thread(
         lambda: (
-            service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
+            service.events()
+            .delete(
+                calendarId=calendar_id,
+                eventId=event_id,
+                sendUpdates=send_updates,
+            )
+            .execute()
         )
     )
 
@@ -1221,12 +1283,6 @@ async def _rsvp_event_impl(
     if response not in valid_responses:
         raise ValueError(
             f"Invalid response '{response}'. Must be one of: {sorted(valid_responses)}"
-        )
-
-    valid_send_updates = {"all", "externalOnly", "none"}
-    if send_updates not in valid_send_updates:
-        raise ValueError(
-            f"Invalid send_updates '{send_updates}'. Must be one of: {sorted(valid_send_updates)}"
         )
 
     existing_event = await asyncio.to_thread(
@@ -1278,7 +1334,15 @@ async def _rsvp_event_impl(
 # ---------------------------------------------------------------------------
 
 
-@server.tool()
+@server.tool(
+    title="Manage Event",
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=True,
+    ),
+)
 @handle_http_errors("manage_event", service_type="calendar")
 @require_google_service("calendar", "calendar_events")
 async def manage_event(
@@ -1296,6 +1360,11 @@ async def manage_event(
     timezone: Optional[str] = None,
     attachments: Optional[StringList] = None,
     add_google_meet: Optional[bool] = None,
+    conference_data: Optional[Dict[str, Any]] = None,
+    conference_provider: Optional[str] = None,
+    conference_uri: Optional[str] = None,
+    conference_passcode: Optional[str] = None,
+    conference_id: Optional[str] = None,
     reminders: Optional[Union[str, List[Dict[str, Any]]]] = None,
     use_default_reminders: Optional[bool] = None,
     transparency: Optional[str] = None,
@@ -1325,7 +1394,18 @@ async def manage_event(
         attendees (Optional[Union[List[str], List[Dict[str, Any]]]]): Attendee email addresses or objects.
         timezone (Optional[str]): Timezone (e.g., "America/New_York").
         attachments (Optional[List[str]]): List of Google Drive file URLs or IDs to attach.
-        add_google_meet (Optional[bool]): Whether to add/remove Google Meet.
+        add_google_meet (Optional[bool]): Whether to add/remove native Google Meet.
+        conference_data (Optional[Dict[str, Any]]): Raw Google Calendar `conferenceData`
+            payload to attach a third-party conference (Zoom/Webex/Teams add-on). Use this
+            for full control; mutually exclusive with the conference_provider helper params
+            and with add_google_meet. (create/update only)
+        conference_provider (Optional[str]): Higher-level helper: third-party provider name
+            (e.g. "zoom", "webex", "teams"). Requires conference_uri. The MCP builds the
+            addOn `conferenceData` block internally. (create/update only)
+        conference_uri (Optional[str]): Join URL for the third-party conference (e.g.
+            "https://zoom.us/j/123456789"). Required when conference_provider is set.
+        conference_passcode (Optional[str]): Optional passcode for the third-party conference.
+        conference_id (Optional[str]): Optional provider-side conference/meeting ID.
         reminders (Optional[Union[str, List[Dict[str, Any]]]]): Custom reminder objects.
         use_default_reminders (Optional[bool]): Whether to use default reminders.
         transparency (Optional[str]): "opaque" (busy) or "transparent" (free).
@@ -1337,12 +1417,33 @@ async def manage_event(
         guests_can_see_other_guests (Optional[bool]): Whether attendees can see other guests.
         response (Optional[str]): RSVP response — "accepted", "declined", "tentative", or "needsAction" (rsvp action only).
         rsvp_comment (Optional[str]): Optional message to include with the RSVP response (rsvp action only).
-        send_updates (Optional[str]): Notification behavior for RSVP — "all" (default), "externalOnly", or "none" (rsvp action only).
+        send_updates (Optional[str]): Notification behavior for create, update, delete, and rsvp — "all" (default), "externalOnly", or "none".
 
     Returns:
         str: Confirmation message with event details.
     """
     action_lower = action.lower().strip()
+
+    if send_updates is not None:
+        valid_send_updates = {"all", "externalOnly", "none"}
+        if send_updates not in valid_send_updates:
+            raise ValueError(
+                f"Invalid send_updates '{send_updates}'. Must be one of: {sorted(valid_send_updates)}"
+            )
+
+    # Resolve the conferencing inputs (raw payload or helper params) once for the
+    # actions that build an event body.
+    resolved_conference_data = None
+    if action_lower in ("create", "update"):
+        resolved_conference_data = _resolve_conference_data(
+            conference_data,
+            conference_provider,
+            conference_uri,
+            conference_passcode,
+            conference_id,
+            add_google_meet,
+        )
+
     if action_lower == "create":
         if not summary or not start_time or not end_time:
             raise ValueError(
@@ -1361,6 +1462,7 @@ async def manage_event(
             timezone=timezone,
             attachments=attachments,
             add_google_meet=add_google_meet or False,
+            conference_data=resolved_conference_data,
             reminders=reminders,
             use_default_reminders=use_default_reminders
             if use_default_reminders is not None
@@ -1371,6 +1473,7 @@ async def manage_event(
             guests_can_invite_others=guests_can_invite_others,
             guests_can_see_other_guests=guests_can_see_other_guests,
             recurrence=recurrence,
+            send_updates=send_updates or "all",
         )
     elif action_lower == "update":
         if not event_id:
@@ -1388,6 +1491,7 @@ async def manage_event(
             attendees=attendees,
             timezone=timezone,
             add_google_meet=add_google_meet,
+            conference_data=resolved_conference_data,
             reminders=reminders,
             use_default_reminders=use_default_reminders,
             transparency=transparency,
@@ -1397,6 +1501,7 @@ async def manage_event(
             guests_can_modify=guests_can_modify,
             guests_can_invite_others=guests_can_invite_others,
             guests_can_see_other_guests=guests_can_see_other_guests,
+            send_updates=send_updates or "all",
         )
     elif action_lower == "delete":
         if not event_id:
@@ -1406,6 +1511,7 @@ async def manage_event(
             user_google_email=user_google_email,
             event_id=event_id,
             calendar_id=calendar_id,
+            send_updates=send_updates or "all",
         )
     elif action_lower == "rsvp":
         if not event_id:
@@ -1746,7 +1852,15 @@ async def _delete_ooo_event_impl(
     return confirmation
 
 
-@server.tool()
+@server.tool(
+    title="Manage Out of Office",
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=True,
+    ),
+)
 @handle_http_errors("manage_out_of_office", service_type="calendar")
 @require_google_service("calendar", "calendar_events")
 async def manage_out_of_office(
@@ -1903,6 +2017,7 @@ async def _create_focus_time_event_impl(
     end_time: str,
     calendar_id: str = "primary",
     summary: Optional[str] = None,
+    description: Optional[str] = None,
     auto_decline_mode: Optional[str] = None,
     decline_message: Optional[str] = None,
     chat_status: Optional[str] = None,
@@ -1937,6 +2052,8 @@ async def _create_focus_time_event_impl(
         "focusTimeProperties": focus_time_props,
         "transparency": "opaque",
     }
+    if description:
+        event_body["description"] = description
     if recurrence:
         event_body["recurrence"] = recurrence
 
@@ -2067,6 +2184,7 @@ async def _update_focus_time_event_impl(
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     summary: Optional[str] = None,
+    description: Optional[str] = None,
     auto_decline_mode: Optional[str] = None,
     decline_message: Optional[str] = None,
     chat_status: Optional[str] = None,
@@ -2092,6 +2210,8 @@ async def _update_focus_time_event_impl(
 
     if summary is not None:
         patch_body["summary"] = summary
+    if description is not None:
+        patch_body["description"] = description
     if start_time is not None:
         patch_body["start"] = _focus_time_time_entry(
             start_time, is_end=False, timezone=timezone
@@ -2204,7 +2324,15 @@ async def _delete_focus_time_event_impl(
     return confirmation
 
 
-@server.tool()
+@server.tool(
+    title="Manage Focus Time",
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=True,
+    ),
+)
 @handle_http_errors("manage_focus_time", service_type="calendar")
 @require_google_service("calendar", "calendar_events")
 async def manage_focus_time(
@@ -2214,6 +2342,7 @@ async def manage_focus_time(
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     summary: Optional[str] = None,
+    description: Optional[str] = None,
     auto_decline_mode: Optional[str] = None,
     decline_message: Optional[str] = None,
     chat_status: Optional[str] = None,
@@ -2236,6 +2365,7 @@ async def manage_focus_time(
         start_time (Optional[str]): Start date/time. Use 'YYYY-MM-DD' for full-day or RFC3339 for partial-day (e.g., '2024-04-05T09:00:00Z'). Date-only values are auto-converted to dateTime (midnight-to-midnight). Required for create.
         end_time (Optional[str]): End date/time (exclusive). Same format as start_time. For a single full day on April 5, use start_time='2026-04-05' and end_time='2026-04-06'. Required for create.
         summary (Optional[str]): Display text on the calendar. Defaults to "Focus Time".
+        description (Optional[str]): Event description. Useful for adding context about what the focus time is for.
         auto_decline_mode (Optional[str]): How to handle conflicting invitations. One of: "declineAllConflictingInvitations" (default), "declineOnlyNewConflictingInvitations", "declineNone".
         decline_message (Optional[str]): Message included when auto-declining invitations.
         chat_status (Optional[str]): Google Chat status during the focus time. Supports "doNotDisturb" (default) and "available".
@@ -2261,6 +2391,7 @@ async def manage_focus_time(
             end_time=end_time,
             calendar_id=calendar_id,
             summary=summary,
+            description=description,
             auto_decline_mode=auto_decline_mode,
             decline_message=decline_message,
             chat_status=chat_status,
@@ -2288,6 +2419,7 @@ async def manage_focus_time(
             start_time=start_time,
             end_time=end_time,
             summary=summary,
+            description=description,
             auto_decline_mode=auto_decline_mode,
             decline_message=decline_message,
             chat_status=chat_status,
@@ -2314,7 +2446,15 @@ async def manage_focus_time(
 # ---------------------------------------------------------------------------
 
 
-@server.tool()
+@server.tool(
+    title="Query Freebusy",
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    ),
+)
 @handle_http_errors("query_freebusy", is_read_only=True, service_type="calendar")
 @require_google_service("calendar", "calendar_read")
 async def query_freebusy(
@@ -2422,7 +2562,15 @@ async def query_freebusy(
     return result_text
 
 
-@server.tool()
+@server.tool(
+    title="Create Calendar",
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=True,
+    ),
+)
 @handle_http_errors("create_calendar", is_read_only=False, service_type="calendar")
 @require_google_service("calendar", "calendar")
 async def create_calendar(
