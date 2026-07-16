@@ -325,6 +325,20 @@ def _parse_allowed_redirect_uris(value: Optional[str]) -> Optional[List[str]]:
     return uris or None
 
 
+def _resolve_authorization_consent_requirement(
+    allowed_client_redirect_uris: Optional[List[str]],
+) -> bool:
+    """Resolve the FastMCP consent setting and enforce a safe bypass policy."""
+    require_consent = _parse_bool_env(
+        os.getenv("WORKSPACE_MCP_REQUIRE_AUTHORIZATION_CONSENT", "true")
+    )
+    if not require_consent and not allowed_client_redirect_uris:
+        raise RuntimeError(
+            "Disabling authorization consent requires a client redirect URI allowlist"
+        )
+    return require_consent
+
+
 def set_transport_mode(mode: str):
     """Sets the transport mode for the server."""
     _set_transport_mode(mode)
@@ -639,6 +653,11 @@ def configure_server_for_http():
                 allowed_client_redirect_uris = _parse_allowed_redirect_uris(
                     os.getenv("WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS")
                 )
+                require_authorization_consent = (
+                    _resolve_authorization_consent_requirement(
+                        allowed_client_redirect_uris
+                    )
+                )
                 if allowed_client_redirect_uris:
                     logger.info(
                         "OAuth 2.1: restricting DCR client redirect URIs to allowlist: %s",
@@ -654,6 +673,7 @@ def configure_server_for_http():
                     client_storage=client_storage,
                     jwt_signing_key=jwt_signing_key,
                     allowed_client_redirect_uris=allowed_client_redirect_uris,
+                    require_authorization_consent=require_authorization_consent,
                 )
                 if provider.client_registration_options is not None:
                     # Keep protocol-level auth limited to base identity scopes, but

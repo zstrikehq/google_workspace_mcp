@@ -11,6 +11,8 @@ primary_region = 'ewr'
 [env]
   MCP_ENABLE_OAUTH21 = "true"
   WORKSPACE_EXTERNAL_URL = "https://zstrike-google-mcp.fly.dev"
+  WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS = "https://app.wicket.sh/callback,https://stg-app.wicket.sh/callback"
+  WORKSPACE_MCP_REQUIRE_AUTHORIZATION_CONSENT = "false"
   WORKSPACE_MCP_OAUTH_PROXY_STORAGE_BACKEND = "disk"
   WORKSPACE_MCP_OAUTH_PROXY_DISK_DIRECTORY = "/data/oauth-proxy"
   WORKSPACE_MCP_CREDENTIALS_DIR = "/data/credentials"
