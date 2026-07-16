@@ -43,4 +43,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Exec-form entrypoint so `docker run IMAGE --tool-tier core` appends args (see Docker docs).
 # entrypoint.sh chowns /data (root-mounted by Fly) then execs the server as the app user.
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["--tools", "gmail", "drive", "calendar", "docs", "sheets", "slides", "forms", "tasks", "chat", "contacts", "--tool-tier", "complete"]
+CMD ["--tools", "gmail", "drive", "calendar", "--tool-tier", "complete"]
