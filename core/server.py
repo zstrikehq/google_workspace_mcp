@@ -719,6 +719,70 @@ def get_auth_provider() -> Optional[GoogleProvider]:
     return _auth_provider
 
 
+@server.custom_route("/userinfo", methods=["GET"])
+async def userinfo(request: Request) -> JSONResponse:
+    """Return Google identity claims for a valid FastMCP bearer token."""
+    response_headers = {
+        "Cache-Control": "no-store",
+        "Pragma": "no-cache",
+    }
+
+    def error_response(error: str, status_code: int) -> JSONResponse:
+        headers = dict(response_headers)
+        if status_code == 401:
+            headers["WWW-Authenticate"] = 'Bearer error="invalid_token"'
+        return JSONResponse(
+            {"error": error}, status_code=status_code, headers=headers
+        )
+
+    authorization = request.headers.get("authorization", "")
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1]:
+        return error_response("invalid_token", 401)
+
+    provider = get_auth_provider()
+    if provider is None or not hasattr(provider, "load_access_token"):
+        return error_response("temporarily_unavailable", 503)
+
+    try:
+        access_token = await provider.load_access_token(parts[1])
+    except Exception:
+        logger.warning("UserInfo token validation failed", exc_info=True)
+        return error_response("temporarily_unavailable", 503)
+
+    if access_token is None:
+        return error_response("invalid_token", 401)
+
+    token_claims = getattr(access_token, "claims", None)
+    claims = token_claims if isinstance(token_claims, dict) else {}
+    subject = claims.get("sub") or getattr(access_token, "client_id", None)
+    email = claims.get("email")
+    if (
+        not isinstance(subject, str)
+        or not subject.strip()
+        or not isinstance(email, str)
+        or not email.strip()
+    ):
+        return error_response("invalid_token", 401)
+
+    raw_email_verified = claims.get("email_verified", False)
+    if isinstance(raw_email_verified, bool):
+        email_verified = raw_email_verified
+    elif isinstance(raw_email_verified, str):
+        email_verified = raw_email_verified.strip().lower() == "true"
+    else:
+        email_verified = raw_email_verified == 1
+
+    return JSONResponse(
+        {
+            "sub": subject.strip(),
+            "email": email.strip(),
+            "email_verified": email_verified,
+        },
+        headers=response_headers,
+    )
+
+
 @server.custom_route("/", methods=["GET"])
 @server.custom_route("/health", methods=["GET"])
 async def health_check(request: Request):
